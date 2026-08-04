@@ -1,0 +1,29 @@
+#pragma once
+
+#include <string>
+#include <vector>
+
+#include "adsb/model.hpp"
+
+namespace adsb {
+
+// Path portion of the /v2/point URL (radius in nautical miles, max 250).
+std::string buildPointPath(double lat, double lon, int radiusNm);
+
+// Path for a single-plane route lookup, used to derive the destination.
+std::string buildRoutePath(const std::string& callsign, double lat, double lon);
+
+// Parses a /v2/point response body, keeping only aircraft within rangeKm of
+// the observer and annotating each with distanceKm. Returns false on error.
+bool parseAircraftResponse(const char* body, size_t len, double obsLat,
+                           double obsLon, double rangeKm,
+                           std::vector<Aircraft>& out);
+
+// Parses a /api/0/route response body and stores the destination airport code
+// in dest. Returns false if unknown/unavailable.
+bool parseRouteDestination(const char* body, size_t len, std::string& dest);
+
+// Strips leading/trailing whitespace (adsb.lol pads callsigns to 8 chars).
+std::string trim(const std::string& s);
+
+}  // namespace adsb
