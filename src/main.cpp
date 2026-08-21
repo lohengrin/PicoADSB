@@ -33,6 +33,7 @@ int main() {
     }
 
     int refreshCount = 0;
+    long long lastUpdateUtc = 0;
     std::string body;
     std::vector<Aircraft> planes;
 
@@ -49,6 +50,13 @@ int main() {
             if (adsb::parseAircraftResponse(body.data(), body.size(),
                                             OBSERVER_LAT, OBSERVER_LON, RANGE_KM, planes)) {
                 ok = true;
+
+                // Wall-clock anchor: the API response carries its own
+                // timestamp ("now"/"ctime"), so no NTP is needed.
+                long long respSec = 0;
+                if (adsb::parseResponseTime(body.data(), body.size(), respSec)) {
+                    lastUpdateUtc = respSec;
+                }
 
                 // Find closest plane
                 const Aircraft* closest = nullptr;
@@ -73,7 +81,7 @@ int main() {
                 if (closest) {
                     Aircraft c = *closest;  // copy to add destination
                     if (!dest.empty()) c.destination = dest;
-                    ui::drawDetails(c);
+                    ui::drawDetails(c, lastUpdateUtc);
                 }
                 refreshCount++;
                 if (refreshCount % CLEAR_EVERY_N == 0) {

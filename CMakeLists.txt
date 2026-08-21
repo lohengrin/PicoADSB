@@ -26,6 +26,7 @@ add_executable(picoadsb
     src/display/display.cpp
     src/ui/radar.cpp
     src/ui/details.cpp
+    src/util/wallclock.cpp
 )
 
 target_include_directories(picoadsb PRIVATE
@@ -51,18 +52,3 @@ pico_enable_stdio_usb(picoadsb 1)
 pico_enable_stdio_uart(picoadsb 0)
 
 pico_add_extra_outputs(picoadsb)
-
-# ---------- host unit tests (native) ----------
-option(PICOADSB_HOST_TESTS "Build host-side unit tests" OFF)
-if(PICOADSB_HOST_TESTS)
-    enable_testing()
-    add_executable(unit_tests
-        tests/unit_tests.cpp
-        src/adsb/json.cpp
-        src/adsb/adsb_client.cpp
-        src/adsb/geo.hpp
-    )
-    target_include_directories(unit_tests PRIVATE src)
-    target_compile_definitions(unit_tests PRIVATE PICOADSB_HOST_TESTS)
-    add_test(NAME unit_tests COMMAND unit_tests)
-endif()

@@ -5,6 +5,7 @@
 #include "adsb/type_names.hpp"
 #include "display/display.hpp"
 #include "display/epd_c_api.h"
+#include "util/wallclock.hpp"
 
 namespace ui {
 
@@ -25,7 +26,7 @@ static inline void drawValue(int x, int y, const char* value) {
     Paint_DrawString_EN(x, y, value, &Font12, PaperWhite, InkBlack);
 }
 
-void drawDetails(const Aircraft& plane) {
+void drawDetails(const Aircraft& plane, long long lastUpdateUtc) {
     // Paper-white background for the whole pane
     Paint_DrawRectangle(DETAILS_X0, 0, DETAILS_X0 + DETAILS_W - 1,
                         DISPLAY_H - 1, PaperWhite, DOT_PIXEL_1X1, DRAW_FILL_FULL);
@@ -35,6 +36,16 @@ void drawDetails(const Aircraft& plane) {
 
     int y = 3;
     Paint_DrawString_EN(colLabel, y, "CLOSEST", &Font12, PaperWhite, InkBlack);
+
+    // Last-update clock in the top-right corner of the pane (HH:MM:SS,
+    // right-aligned). Font12 glyphs are 7px wide.
+    char timeBuf[9] = "--:--:--";
+    int h = 0, m = 0, s = 0;
+    if (lastUpdateUtc != 0 && wallclock::localTime(lastUpdateUtc, h, m, s)) {
+        snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d:%02d", h, m, s);
+    }
+    Paint_DrawString_EN(DETAILS_X0 + DETAILS_W - 7 * 8 - 2, y, timeBuf, &Font12,
+                        PaperWhite, InkBlack);
     y += 15;
 
     // Separator line

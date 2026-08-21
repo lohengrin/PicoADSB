@@ -118,4 +118,33 @@ bool parseRouteDestination(const char* body, size_t len, std::string& dest) {
     return !dest.empty();
 }
 
+bool parseResponseTime(const char* body, size_t len, long long& epochSec) {
+    json::Reader r(body, len);
+    std::string key;
+
+    if (!r.beginObject()) return false;
+
+    bool gotNow = false, gotCtime = false;
+    double nowVal = 0, ctimeVal = 0;
+    while (r.nextObjectMember(key)) {
+        if (key == "now") {
+            if (!r.parseNumber(nowVal)) return false;
+            gotNow = true;
+        } else if (key == "ctime") {
+            if (!r.parseNumber(ctimeVal)) return false;
+            gotCtime = true;
+        } else {
+            r.skipValue();
+        }
+        if (gotNow && gotCtime) break;  // enough, don't scan the whole "ac" array
+    }
+    if (!r.valid()) return false;
+
+    const double v = gotNow ? nowVal : (gotCtime ? ctimeVal : 0.0);
+    if (v <= 0) return false;
+    // readsb-style timestamps are milliseconds.
+    epochSec = static_cast<long long>(v >= 1e11 ? v / 1000.0 : v);
+    return true;
+}
+
 }  // namespace adsb

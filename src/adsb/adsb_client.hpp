@@ -23,6 +23,11 @@ bool parseAircraftResponse(const char* body, size_t len, double obsLat,
 // in dest. Returns false if unknown/unavailable.
 bool parseRouteDestination(const char* body, size_t len, std::string& dest);
 
+// Extracts the response timestamp ("now", falling back to "ctime") from a
+// /v2/point body as UTC epoch seconds. Used as wall-clock source since the
+// Pico has no RTC and we do not run SNTP.
+bool parseResponseTime(const char* body, size_t len, long long& epochSec);
+
 // Strips leading/trailing whitespace (adsb.lol pads callsigns to 8 chars).
 std::string trim(const std::string& s);
 

@@ -27,15 +27,20 @@ void clearFb() {
 
 bool refresh() {
     if (s_fullRefresh) {
-        // Loads both RAM planes and runs the full waveform (one blink).
-        // This also establishes the "previous frame" base used by
-        // subsequent partial refreshes.
+        // Hardware reset also wakes the panel from deep sleep, then loads
+        // both RAM planes and runs the full waveform (one blink),
+        // establishing the base frame for subsequent partial updates.
+        EPD_2in13_V4_Init();
         EPD_2in13_V4_Display_Base(fb);
         s_fullRefresh = false;
     } else {
-        // Partial update: only changed pixels switch, no full blink.
+        // Partial update: Display_Partial pulses RST itself, which also
+        // wakes the panel from deep sleep, then reconfigures border/window.
         EPD_2in13_V4_Display_Partial(fb);
     }
+    // Deep-sleep between cycles: e-paper holds its image with ~zero draw,
+    // and the panel driver IC powers its internal regulators down.
+    EPD_2in13_V4_Sleep();
     return true;
 }
 

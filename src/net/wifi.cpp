@@ -19,6 +19,11 @@ bool wifiInitAndConnect() {
         return false;
     }
     printf("wifi connected\n");
+
+    // Modem power saving (PM2): the radio sleeps between traffic bursts
+    // and wakes on beacons/data. Big idle-current win on Pico W.
+    cyw43_wifi_pm(&cyw43_state, cyw43_pm_value(CYW43_PM2_POWERSAVE_MODE, 200, 1, 1, 1));
+
     return true;
 }
 
