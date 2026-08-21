@@ -23,6 +23,7 @@ static struct altcp_tls_config* tls_config = nullptr;
 struct TlsState {
     struct altcp_pcb* pcb = nullptr;
     bool complete = false;
+    bool connected = false;  // TCP + TLS handshake done
     int error = 0;
     const char* request = nullptr;
     int timeout = 15;
@@ -58,12 +59,13 @@ static err_t tlsConnected(void* arg, struct altcp_pcb* pcb, err_t err) {
         printf("connect failed %d\n", err);
         return tlsClose(s);
     }
-    printf("connected, sending request\n");
-    err = altcp_write(pcb, s->request, strlen(s->request), TCP_WRITE_FLAG_COPY);
-    if (err != ERR_OK) {
-        printf("write error %d\n", err);
-        return tlsClose(s);
-    }
+    // Handshake done. The request is NOT written here: this callback runs
+    // inside lwIP's input processing of the server's handshake flight, and
+    // writing app data in that context races with the handshake ACK going
+    // out (observed as the server closing the connection without reading
+    // the request). httpsGet() sends the request once we return.
+    s->connected = true;
+    printf("connected (TLS handshake done)\n");
     return ERR_OK;
 }
 
@@ -252,6 +254,26 @@ bool httpsGet(const char* host, const char* path, std::string& outBody) {
 
     if (!tlsOpen(host, &state)) return false;
 
+    // Wait for TLS handshake to finish
+    while (!state.connected && !state.complete) {
+        sleep_ms(50);
+    }
+    if (!state.connected) {
+        printf("handshake did not complete\n");
+        return false;
+    }
+
+    // Send the request from the main loop context (not inside lwIP input
+    // processing), with the core lock held.
+    cyw43_arch_lwip_begin();
+    err_t werr = altcp_write(state.pcb, state.request, strlen(state.request), TCP_WRITE_FLAG_COPY);
+    cyw43_arch_lwip_end();
+    if (werr != ERR_OK) {
+        printf("write error %d\n", werr);
+        tlsClose(&state);
+        return false;
+    }
+
     // Wait for completion
     while (!state.complete) {
         sleep_ms(1000);
@@ -263,7 +285,8 @@ bool httpsGet(const char* host, const char* path, std::string& outBody) {
         return false;
     }
     if (state.statusCode != 200) {
-        printf("HTTP %d\n", state.statusCode);
+        printf("HTTP %d (bytes=%zu)\n", state.statusCode,
+               state.headersDone ? state.raw.size() - state.headerEnd : state.raw.size());
         return false;
     }
 
