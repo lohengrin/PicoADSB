@@ -43,6 +43,10 @@ target_link_libraries(picoadsb
     hardware_spi
 )
 
+# mbedtls 3.6.6 added psa_crypto_random.c but SDK 2.3.0's pico_mbedtls source
+# list predates it; compile it here rather than patching the SDK
+target_sources(picoadsb PRIVATE ${PICO_SDK_PATH}/lib/mbedtls/library/psa_crypto_random.c)
+
 pico_enable_stdio_usb(picoadsb 1)
 pico_enable_stdio_uart(picoadsb 0)
 

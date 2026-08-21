@@ -2,12 +2,15 @@
 
 #include <vector>
 #include "adsb/model.hpp"
+#include "display/display.hpp"
 
 namespace ui {
 
-// Radar occupies left half (0..RADAR_W-1) of the display.
-inline constexpr int RADAR_W = 61;   // pixels
-inline constexpr int RADAR_H = 250;  // full height
+// Left half of the landscape canvas (250x122).
+inline constexpr int RADAR_X0 = 0;
+inline constexpr int RADAR_Y0 = 0;
+inline constexpr int RADAR_W = display::LAND_W / 2;  // 125
+inline constexpr int RADAR_H = display::LAND_H;      // 122
 
 // Draws the radar background (range rings, center cross) and all aircraft
 // as oriented triangles. The closest plane is drawn larger.

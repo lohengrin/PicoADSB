@@ -7,39 +7,45 @@
 
 namespace ui {
 
+// Colour mapping for this panel (verified on hardware): WHITE (0xFF)
+// renders white, BLACK (0x00) renders black. Note the Waveshare library's
+// Paint_DrawString_EN internally swaps its colour arguments, so its
+// effective order is (cell background, glyph colour) — and a background
+// equal to FONT_BACKGROUND (= WHITE) draws glyphs only, which is what we
+// want on top of the pane we fill ourselves.
+constexpr UWORD InkBlack = BLACK;
+constexpr UWORD PaperWhite = WHITE;
+
 static inline void drawLabel(int x, int y, const char* label) {
-    Paint_DrawString_EN(x, y, label, &Font8, BLACK, WHITE);
+    Paint_DrawString_EN(x, y, label, &Font8, PaperWhite, InkBlack);
 }
 
 static inline void drawValue(int x, int y, const char* value) {
-    Paint_DrawString_EN(x, y, value, &Font12, BLACK, WHITE);
-}
-
-static inline void drawValue(int x, int y, const std::string& value) {
-    drawValue(x, y, value.c_str());
+    Paint_DrawString_EN(x, y, value, &Font12, PaperWhite, InkBlack);
 }
 
 void drawDetails(const Aircraft& plane) {
-    int x0 = DETAILS_X0;
-    int col1 = x0;
-    int col2 = x0 + 4;  // value starts 4px after label
+    // Paper-white background for the whole pane
+    Paint_DrawRectangle(DETAILS_X0, 0, DETAILS_X0 + DETAILS_W - 1,
+                        DISPLAY_H - 1, PaperWhite, DOT_PIXEL_1X1, DRAW_FILL_FULL);
 
-    int y = 4;
-    // Title
-    Paint_DrawString_EN(col1, y, "CLOSEST", &Font12, BLACK, WHITE);
-    y += 16;
+    const int colLabel = DETAILS_X0 + 3;
+    const int colValue = DETAILS_X0 + 38;
+
+    int y = 3;
+    Paint_DrawString_EN(colLabel, y, "CLOSEST", &Font12, PaperWhite, InkBlack);
+    y += 15;
 
     // Separator line
-    Paint_DrawLine(x0, y, x0 + DETAILS_W - 1, y, BLACK, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
+    Paint_DrawLine(DETAILS_X0 + 1, y, DETAILS_X0 + DETAILS_W - 2, y,
+                   InkBlack, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
     y += 4;
 
     auto field = [&](const char* label, const char* value) {
-        if (y + 12 > DISPLAY_H) return;
-        drawLabel(col1, y, label);
-        y += 10;
-        if (y + 12 > DISPLAY_H) return;
-        drawValue(col2, y, value);
-        y += 14;
+        if (y + 13 > DISPLAY_H - 2) return;
+        drawLabel(colLabel, y + 2, label);
+        drawValue(colValue, y, value);
+        y += 15;
     };
 
     // Type

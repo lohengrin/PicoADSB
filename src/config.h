@@ -5,11 +5,11 @@
 #define OBSERVER_LON 2.2668162
 
 // Radar range in kilometers. The adsb.lol API takes nautical miles
-// (1 NM = 1.852 km), so 50 km is requested as 27 NM.
-#define RANGE_KM 50
+// (1 NM = 1.852 km), so 25 km is requested as 13 NM.
+#define RANGE_KM 25
 
 // Full refresh period in seconds.
-#define REFRESH_SEC 60
+#define REFRESH_SEC 30
 
 // Full clear every N refreshes to prevent e-paper ghosting.
 #define CLEAR_EVERY_N 10

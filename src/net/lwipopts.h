@@ -101,7 +101,7 @@
 /** Certificate verification mode: MBEDTLS_SSL_VERIFY_NONE, MBEDTLS_SSL_VERIFY_OPTIONAL (default),
  * MBEDTLS_SSL_VERIFY_REQUIRED (recommended)*/
 #ifndef ALTCP_MBEDTLS_AUTHMODE
-#define ALTCP_MBEDTLS_AUTHMODE                        MBEDTLS_SSL_VERIFY_REQUIRED
+#define ALTCP_MBEDTLS_AUTHMODE                        MBEDTLS_SSL_VERIFY_OPTIONAL
 #endif
 
 #endif /* _LWIPOPTS_H */

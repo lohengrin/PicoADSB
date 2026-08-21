@@ -11,7 +11,7 @@ bool init() {
         return false;
     }
     EPD_2in13_V4_Init();
-    Paint_NewImage(fb, WIDTH, HEIGHT, 0, WHITE);
+    Paint_NewImage(fb, WIDTH, HEIGHT, PAINT_ROTATE, WHITE);
     Paint_SelectImage(fb);
     return true;
 }

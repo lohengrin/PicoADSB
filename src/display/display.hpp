@@ -10,6 +10,13 @@ inline constexpr int HEIGHT = 250;
 inline constexpr int BYTES_PER_ROW = (WIDTH + 7) / 8;  // 16
 inline constexpr int FB_SIZE = BYTES_PER_ROW * HEIGHT;  // 4000
 
+// Device is used in landscape orientation: the panel's native portrait
+// buffer (122x250) is rotated so the virtual canvas becomes 250x122.
+// Switch to 270 if the picture appears upside down on the hardware.
+inline constexpr int PAINT_ROTATE = 90;
+inline constexpr int LAND_W = HEIGHT;  // 250
+inline constexpr int LAND_H = WIDTH;   // 122
+
 // Framebuffer, laid out row-major with 8 pixels packed per byte (LSB leftmost).
 extern uint8_t fb[FB_SIZE];
 

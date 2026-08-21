@@ -23,6 +23,7 @@ static void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, UWORD c
 
 // Draw an aircraft triangle at (cx, cy) oriented by track degrees.
 // size = radius of the triangle (nose distance from center).
+// The closest plane is drawn as a solid filled triangle.
 static void drawAircraftTriangle(int cx, int cy, double trackDeg, int size, bool isClosest) {
     const double h = trackDeg * geo::PI / 180.0;
     // Nose
@@ -37,35 +38,54 @@ static void drawAircraftTriangle(int cx, int cy, double trackDeg, int size, bool
     int bry = cy - static_cast<int>(std::cos(h - backAngle) * backLen + 0.5);
 
     // Clamp to radar box
-    nx = clampi(nx, 0, RADAR_W - 1);
-    ny = clampi(ny, 0, RADAR_H - 1);
-    blx = clampi(blx, 0, RADAR_W - 1);
-    bly = clampi(bly, 0, RADAR_H - 1);
-    brx = clampi(brx, 0, RADAR_W - 1);
-    bry = clampi(bry, 0, RADAR_H - 1);
+    nx = clampi(nx, RADAR_X0, RADAR_X0 + RADAR_W - 1);
+    ny = clampi(ny, RADAR_Y0, RADAR_Y0 + RADAR_H - 1);
+    blx = clampi(blx, RADAR_X0, RADAR_X0 + RADAR_W - 1);
+    bly = clampi(bly, RADAR_Y0, RADAR_Y0 + RADAR_H - 1);
+    brx = clampi(brx, RADAR_X0, RADAR_X0 + RADAR_W - 1);
+    bry = clampi(bry, RADAR_Y0, RADAR_Y0 + RADAR_H - 1);
 
-    UWORD color = isClosest ? BLACK : BLACK;
-    drawTriangle(nx, ny, blx, bly, brx, bry, color);
-
-    // For closest plane, draw a small circle around it
     if (isClosest) {
-        Paint_DrawCircle(cx, cy, size + 3, BLACK, DOT_PIXEL_1X1, DRAW_FILL_EMPTY);
+        // Solid fill via scanline point-in-triangle test
+        const int minx = std::min({nx, blx, brx});
+        const int maxx = std::max({nx, blx, brx});
+        const int miny = std::min({ny, bly, bry});
+        const int maxy = std::max({ny, bly, bry});
+
+        auto edge = [](int ax, int ay, int bx, int by, int px, int py) {
+            return (bx - ax) * (py - ay) - (by - ay) * (px - ax);
+        };
+
+        for (int py = miny; py <= maxy; ++py) {
+            for (int px = minx; px <= maxx; ++px) {
+                const int d1 = edge(nx, ny, blx, bly, px, py);
+                const int d2 = edge(blx, bly, brx, bry, px, py);
+                const int d3 = edge(brx, bry, nx, ny, px, py);
+                const bool neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+                const bool pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+                if (!(neg && pos)) {
+                    Paint_DrawPoint(px, py, BLACK, DOT_PIXEL_1X1, DOT_STYLE_DFT);
+                }
+            }
+        }
+    } else {
+        drawTriangle(nx, ny, blx, bly, brx, bry, BLACK);
     }
 }
 
 void drawRadar(const std::vector<Aircraft>& planes,
                double obsLat, double obsLon, double rangeKm) {
-    // Radar center and scale
-    const int cx = RADAR_W / 2;
-    const int cy = RADAR_H / 2;
-    const double scale = static_cast<double>(cx) / rangeKm;  // px per km
+    // Radar center and scale (limited by the smaller dimension)
+    const int cx = RADAR_X0 + RADAR_W / 2;
+    const int cy = RADAR_Y0 + RADAR_H / 2;
+    const double scale = static_cast<double>(std::min(RADAR_W, RADAR_H) / 2) / rangeKm;  // px per km
 
     // Clear to white (already done by caller via clearFb)
 
     // Range rings
     for (int i = 1; i <= 3; ++i) {
         const int r = static_cast<int>(scale * rangeKm * i / 3.0 + 0.5);
-        if (r > 0) {
+        if (r > 0 && r < std::min(cx - RADAR_X0, cy - RADAR_Y0)) {
             Paint_DrawCircle(cx, cy, r, BLACK, DOT_PIXEL_1X1, DRAW_FILL_EMPTY);
         }
     }
@@ -74,11 +94,11 @@ void drawRadar(const std::vector<Aircraft>& planes,
     Paint_DrawLine(cx - 5, cy, cx + 5, cy, BLACK, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
     Paint_DrawLine(cx, cy - 5, cx, cy + 5, BLACK, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
 
-    // N/S/E/W labels using Font8 (small)
-    Paint_DrawString_EN(cx + 2, cy - 5 - 8, "N", &Font8, BLACK, WHITE);
-    Paint_DrawString_EN(cx + 2, cy + 5, "S", &Font8, BLACK, WHITE);
-    Paint_DrawString_EN(cx - 5 - 6, cy - 4, "W", &Font8, BLACK, WHITE);
-    Paint_DrawString_EN(cx + 5 + 2, cy - 4, "E", &Font8, BLACK, WHITE);
+    // N/S/E/W labels using Font12 (larger), near the radar box edges
+    Paint_DrawString_EN(cx + 3, RADAR_Y0 + 2, "N", &Font12, BLACK, WHITE);
+    Paint_DrawString_EN(cx + 3, RADAR_Y0 + RADAR_H - 17, "S", &Font12, BLACK, WHITE);
+    Paint_DrawString_EN(RADAR_X0 + 1, cy - 8, "W", &Font12, BLACK, WHITE);
+    Paint_DrawString_EN(RADAR_X0 + RADAR_W - 13, cy - 8, "E", &Font12, BLACK, WHITE);
 
     // Find closest plane index
     size_t closestIdx = SIZE_MAX;
@@ -103,7 +123,8 @@ void drawRadar(const std::vector<Aircraft>& planes,
         int px = cx + static_cast<int>(dxKm * scale + 0.5);
         int py = cy - static_cast<int>(dyKm * scale + 0.5);
 
-        if (px < 0 || px >= RADAR_W || py < 0 || py >= RADAR_H) continue;
+        if (px < RADAR_X0 || px >= RADAR_X0 + RADAR_W ||
+            py < RADAR_Y0 || py >= RADAR_Y0 + RADAR_H) continue;
 
         const int size = (i == closestIdx) ? 7 : 5;
         drawAircraftTriangle(px, py, a.track, size, i == closestIdx);

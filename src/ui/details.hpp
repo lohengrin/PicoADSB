@@ -1,13 +1,14 @@
 #pragma once
 
 #include "adsb/model.hpp"
+#include "display/display.hpp"
 
 namespace ui {
 
-// Right half: X from DETAILS_X0 to DISPLAY_WIDTH-1 (60 px wide).
-inline constexpr int DETAILS_X0 = 62;
-inline constexpr int DETAILS_W = 60;
-inline constexpr int DISPLAY_H = 250;
+// Right half of the landscape canvas (250x122).
+inline constexpr int DETAILS_X0 = display::LAND_W / 2 + 1;  // 126
+inline constexpr int DETAILS_W = display::LAND_W - DETAILS_X0 - 1;  // 123
+inline constexpr int DISPLAY_H = display::LAND_H;  // 122
 
 // Draws the closest plane info panel.
 void drawDetails(const Aircraft& plane);

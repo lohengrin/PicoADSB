@@ -10,6 +10,8 @@
 #include "lwip/altcp_tls.h"
 #include "lwip/dns.h"
 #include "mbedtls/ssl.h"
+#include "mbedtls/x509_crt.h"
+#include "mbedtls/error.h"
 
 #include "config.h"
 #include "net/isrg_root_yr_pem.h"
@@ -75,6 +77,13 @@ static err_t tlsPoll(void* arg, struct altcp_pcb* pcb) {
 static void tlsErr(void* arg, err_t err) {
     TlsState* s = static_cast<TlsState*>(arg);
     printf("tls err %d\n", err);
+    // Try to get mbedtls error from the SSL context
+    void* ctx = altcp_tls_context(s->pcb);
+    if (ctx) {
+        mbedtls_ssl_context* ssl = (mbedtls_ssl_context*)ctx;
+        // mbedtls doesn't expose last error directly, but we can check
+    }
+    printf("TLS handshake failed (ERR_CLSD = connection closed)\n");
     tlsClose(s);
     s->error = PICO_ERROR_GENERIC;
 }
@@ -169,11 +178,11 @@ static bool tlsOpen(const char* hostname, TlsState* s) {
     mbedtls_ssl_set_hostname((mbedtls_ssl_context*)altcp_tls_context(s->pcb), hostname);
 
     cyw43_arch_lwip_begin();
-    err_t err = dns_gethostbyname(hostname, nullptr, tlsDnsFound, s);
+    ip_addr_t server_ip;
+    err_t err = dns_gethostbyname(hostname, &server_ip, tlsDnsFound, s);
     if (err == ERR_OK) {
-        // In cache, will be called synchronously? Need to handle.
-        // Actually dns_gethostbyname returns ERR_OK only if immediately available,
-        // and tlsDnsFound is NOT called synchronously. So we just wait.
+        // Host is in DNS cache, connect immediately
+        tlsConnectIp(&server_ip, s);
     } else if (err != ERR_INPROGRESS) {
         printf("DNS start failed %d\n", err);
         tlsClose(s);
@@ -185,9 +194,38 @@ static bool tlsOpen(const char* hostname, TlsState* s) {
 static bool ensureTlsConfig() {
     if (tls_config) return true;
     printf("Creating TLS config with ISRG Root YR PEM cert len=%zu...\n", isrg_root_yr_pem_len);
+    
+    // Debug: try to parse the PEM first
+    mbedtls_x509_crt crt;
+    mbedtls_x509_crt_init(&crt);
+    int ret = mbedtls_x509_crt_parse(&crt, (const unsigned char*)isrg_root_yr_pem, isrg_root_yr_pem_len);
+    printf("mbedtls_x509_crt_parse returned: %d (0=success)\n", ret);
+    if (ret != 0) {
+        char buf[128];
+        mbedtls_strerror(ret, buf, sizeof(buf));
+        printf("  Error: %s\n", buf);
+        mbedtls_x509_crt_free(&crt);
+        return false;
+    }
+    mbedtls_x509_crt_free(&crt);
+    
+    // Try creating config with altcp
+    printf("Calling altcp_tls_create_config_client...\n");
     tls_config = altcp_tls_create_config_client((const uint8_t*)isrg_root_yr_pem, isrg_root_yr_pem_len);
     if (!tls_config) {
         printf("failed to create TLS config (altcp_tls_create_config_client returned NULL)\n");
+        // Debug: check if it's a buffer size issue
+        printf("isrg_root_yr_pem_len = %zu\n", isrg_root_yr_pem_len);
+        printf("First 120 chars: %.120s\n", isrg_root_yr_pem);
+        
+        // Test: try without CA cert
+        printf("Trying altcp_tls_create_config_client with NULL CA...\n");
+        tls_config = altcp_tls_create_config_client(NULL, 0);
+        if (!tls_config) {
+            printf("altcp_tls_create_config_client(NULL) also returned NULL!\n");
+        } else {
+            printf("altcp_tls_create_config_client(NULL) worked! Issue is with CA cert.\n");
+        }
         return false;
     }
     // Auth mode is set via ALTCP_MBEDTLS_AUTHMODE in lwipopts.h (VERIFY_REQUIRED)
