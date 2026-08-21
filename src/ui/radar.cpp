@@ -95,8 +95,8 @@ void drawRadar(const std::vector<Aircraft>& planes,
     Paint_DrawLine(cx, cy - 5, cx, cy + 5, BLACK, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
 
     // N/S/E/W labels using Font12 (larger), near the radar box edges
-    Paint_DrawString_EN(cx + 3, RADAR_Y0 + 2, "N", &Font12, BLACK, WHITE);
-    Paint_DrawString_EN(cx + 3, RADAR_Y0 + RADAR_H - 17, "S", &Font12, BLACK, WHITE);
+    Paint_DrawString_EN(cx - 3, RADAR_Y0 + 2, "N", &Font12, BLACK, WHITE);
+    Paint_DrawString_EN(cx - 3, RADAR_Y0 + RADAR_H - 17, "S", &Font12, BLACK, WHITE);
     Paint_DrawString_EN(RADAR_X0 + 1, cy - 8, "W", &Font12, BLACK, WHITE);
     Paint_DrawString_EN(RADAR_X0 + RADAR_W - 13, cy - 8, "E", &Font12, BLACK, WHITE);
 

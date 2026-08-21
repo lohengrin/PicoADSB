@@ -2,6 +2,7 @@
 
 #include <cstdio>
 
+#include "adsb/type_names.hpp"
 #include "display/display.hpp"
 #include "display/epd_c_api.h"
 
@@ -48,8 +49,8 @@ void drawDetails(const Aircraft& plane) {
         y += 15;
     };
 
-    // Type
-    field("TYPE", plane.type.empty() ? "---" : plane.type.c_str());
+    // Type (decoded to the usual name, e.g. A339 -> A330-900neo)
+    field("TYPE", plane.type.empty() ? "---" : adsb::typeName(plane.type));
 
     // Flight (callsign)
     field("FLIGHT", plane.flight.empty() ? "---" : plane.flight.c_str());
