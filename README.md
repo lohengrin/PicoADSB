@@ -96,3 +96,7 @@ minicom -b 115200 -o -D /dev/ttyACM0
 Aircraft data comes from the free community-run API
 [adsb.lol](https://adsb.lol) — no API key needed. Destination lookup uses their
 route database. Many thanks to the adsb.lol feeder community.
+
+## License
+
+PicoADSB is licensed under the [GNU GPL v3](LICENSE.md).
