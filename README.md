@@ -99,4 +99,4 @@ route database. Many thanks to the adsb.lol feeder community.
 
 ## License
 
-PicoADSB is licensed under the [GNU GPL v3](LICENSE.md).
+PicoADSB is licensed under the [MIT License](LICENSE.md). The vendored Waveshare e-Paper library in `third_party/epd` keeps its own per-file MIT notices.

@@ -15,7 +15,7 @@ Landscape layout on the e-Paper:
   response timestamp — no NTP/RTC).
 
 - C++20, CMake, pico-sdk 2.3.0 at `/home/lohengrin/PICO/pico-sdk`
-- License: GPL-3.0 (`LICENSE.md`)
+- License: MIT (`LICENSE.md`)
 
 ## Hardware
 
