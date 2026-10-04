@@ -9,10 +9,11 @@
 #define RANGE_KM 25
 
 // Full refresh period in seconds.
-#define REFRESH_SEC 30
+#define REFRESH_SEC 10
 
-// Full clear every N refreshes to prevent e-paper ghosting.
-#define CLEAR_EVERY_N 10
+// Full clear every N refreshes to prevent e-paper ghosting
+// (100 x 10 s = every ~17 min).
+#define CLEAR_EVERY_N 100
 
 // Maximum HTTP response body size in bytes (the JSON payload).
 #define HTTP_MAX_BODY 16384

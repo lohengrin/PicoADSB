@@ -48,7 +48,7 @@ int main() {
         if (net::httpsGet("api.adsb.lol", path.c_str(), body)) {
             planes.clear();
             if (adsb::parseAircraftResponse(body.data(), body.size(),
-                                            OBSERVER_LAT, OBSERVER_LON, RANGE_KM, planes)) {
+                                            OBSERVER_LAT, OBSERVER_LON, planes)) {
                 ok = true;
 
                 // Wall-clock anchor: the API response carries its own

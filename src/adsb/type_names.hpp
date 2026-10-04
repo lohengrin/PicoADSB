@@ -5,6 +5,7 @@
 // Names are kept <= 12 characters so they fit the details pane.
 // Unknown codes are displayed as-is.
 
+#include <algorithm>
 #include <string>
 
 namespace adsb {
@@ -116,10 +117,10 @@ inline constexpr TypeEntry kTypeNames[]{
     {"CRJX", "CRJ-1000"},
 
     // Business jets
-    {"CL35", "Challenger 350"},
-    {"CL60", "Challenger 600"},
+    {"CL35", "Chall 350"},
+    {"CL60", "Chall 600"},
     {"GLEX", "Global"},
-    {"GLF4", "Gulfstream IV"},
+    {"GLF4", "G-IV"},
     {"GLF5", "G550"},
     {"GLF6", "G650"},
     {"FA20", "Falcon 20"},
@@ -132,8 +133,8 @@ inline constexpr TypeEntry kTypeNames[]{
     {"C25C", "Citation CJ3"},
     {"C25M", "Citation CJ4"},
     {"C56X", "Citation XLS"},
-    {"C68A", "Citation Latitd"},
-    {"C700", "Citation Long."},
+    {"C68A", "Citation Lat"},
+    {"C700", "Citation Lon"},
     {"LJ45", "Learjet 45"},
     {"LJ75", "Learjet 75"},
     {"H25B", "Hawker 800"},
@@ -156,13 +157,18 @@ inline constexpr TypeEntry kTypeNames[]{
     {"R44", "Robinson R44"},
 };
 
-// Returns the friendly name for an ICAO type code, or the code itself
-// when it is not in the table.
-inline const char* typeName(const std::string& icao) {
-    for (const auto& e : kTypeNames) {
-        if (icao == e.code) return e.name;
-    }
-    return icao.c_str();
+// Maximum displayable name length in the details pane
+// (12 chars x 7 px = 84 px, the value column width).
+inline constexpr size_t kMaxTypeNameLen = 12;
+
+// Returns the friendly name for an ICAO type code, or the code itself when it
+// is not in the table. The result is clamped to kMaxTypeNameLen characters.
+inline std::string typeName(const std::string& icao) {
+    const auto it = std::find_if(std::begin(kTypeNames), std::end(kTypeNames),
+                                 [&icao](const TypeEntry& e) { return icao == e.code; });
+    std::string name = (it != std::end(kTypeNames)) ? it->name : icao;
+    if (name.size() > kMaxTypeNameLen) name.resize(kMaxTypeNameLen);
+    return name;
 }
 
 }  // namespace adsb

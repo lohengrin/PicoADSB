@@ -61,7 +61,8 @@ void drawDetails(const Aircraft& plane, long long lastUpdateUtc) {
     };
 
     // Type (decoded to the usual name, e.g. A339 -> A330-900neo)
-    field("TYPE", plane.type.empty() ? "---" : adsb::typeName(plane.type));
+    const std::string typeStr = plane.type.empty() ? "---" : adsb::typeName(plane.type);
+    field("TYPE", typeStr.c_str());
 
     // Flight (callsign)
     field("FLIGHT", plane.flight.empty() ? "---" : plane.flight.c_str());

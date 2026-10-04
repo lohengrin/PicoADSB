@@ -1,5 +1,7 @@
 #include "net/https_client.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -162,7 +164,9 @@ static err_t connRecv(void* arg, struct altcp_pcb* pcb, struct pbuf* p, err_t er
                 }
                 // Case-insensitive header scan on a lowercased copy.
                 std::string hl(headers.substr(0, 512));
-                for (auto& ch : hl) ch = (char)tolower((unsigned char)ch);
+                std::transform(hl.begin(), hl.end(), hl.begin(), [](unsigned char c) {
+                    return static_cast<char>(std::tolower(c));
+                });
                 size_t clPos = hl.find("content-length:");
                 if (clPos != std::string::npos) {
                     c->contentLength = atol(hl.c_str() + clPos + 15);
@@ -224,7 +228,8 @@ static bool openConn(const char* host) {
     altcp_err(conn.pcb, connErr);
     // Poll watchdog is armed per-request in httpsGet(), not here.
 
-    mbedtls_ssl_set_hostname((mbedtls_ssl_context*)altcp_tls_context(conn.pcb), host);
+    mbedtls_ssl_set_hostname(
+        reinterpret_cast<mbedtls_ssl_context*>(altcp_tls_context(conn.pcb)), host);
 
     ip_addr_t server_ip;
     err_t derr;
@@ -298,8 +303,8 @@ static bool ensureTlsConfig() {
     {
         mbedtls_x509_crt crt;
         mbedtls_x509_crt_init(&crt);
-        ret = mbedtls_x509_crt_parse(&crt, (const unsigned char*)isrg_root_yr_pem,
-                                     isrg_root_yr_pem_len);
+        ret = mbedtls_x509_crt_parse(
+            &crt, reinterpret_cast<const unsigned char*>(isrg_root_yr_pem), isrg_root_yr_pem_len);
         mbedtls_x509_crt_free(&crt);
     }
     if (ret != 0) {
@@ -308,8 +313,8 @@ static bool ensureTlsConfig() {
         printf("tls: CA parse failed (%d): %s\n", ret, buf);
         return false;
     }
-    tls_config =
-        altcp_tls_create_config_client((const uint8_t*)isrg_root_yr_pem, isrg_root_yr_pem_len);
+    tls_config = altcp_tls_create_config_client(
+        reinterpret_cast<const uint8_t*>(isrg_root_yr_pem), isrg_root_yr_pem_len);
     if (!tls_config) {
         printf("tls: config creation failed\n");
         return false;

@@ -27,9 +27,11 @@ std::string buildRoutePath(const std::string& callsign, double lat, double lon) 
     return buf;
 }
 
+// Parses a /v2/point response body. The server already limits results to the
+// requested radius, so every aircraft is accepted; distanceKm is still
+// annotated for radar drawing and closest-plane selection.
 bool parseAircraftResponse(const char* body, size_t len, double obsLat,
-                           double obsLon, double rangeKm,
-                           std::vector<Aircraft>& out) {
+                           double obsLon, std::vector<Aircraft>& out) {
     json::Reader r(body, len);
     out.clear();
 
@@ -78,9 +80,7 @@ bool parseAircraftResponse(const char* body, size_t len, double obsLat,
             a.hasPos = hasLat && hasLon;
             if (a.hasPos) {
                 a.distanceKm = geo::distanceKm(obsLat, obsLon, a.lat, a.lon);
-                if (a.distanceKm <= rangeKm) {
-                    out.push_back(std::move(a));
-                }
+                out.push_back(std::move(a));
             }
         }
         if (!r.valid()) return false;
