@@ -54,9 +54,11 @@ the panel and the radio are put into low-power states.
    | `CLEAR_EVERY_N` | 10 | Full panel clear interval (fights e-paper ghosting) |
    | `HTTP_MAX_BODY` | 16384 | Max JSON response size |
 
-4. Build:
+4. Fetch the shared [Pico-Toolset](https://github.com/lohengrin/Pico-Toolset)
+   submodule and build:
 
    ```sh
+   git submodule update --init
    cmake -B build -S . -DPICO_BOARD=pico_w -DPICO_SDK_PATH=/path/to/pico-sdk
    cmake --build build --target picoadsb -j
    ```
@@ -99,4 +101,4 @@ route database. Many thanks to the adsb.lol feeder community.
 
 ## License
 
-PicoADSB is licensed under the [MIT License](LICENSE.md). The vendored Waveshare e-Paper library in `third_party/epd` keeps its own per-file MIT notices.
+PicoADSB is licensed under the [MIT License](LICENSE.md). The e-paper driver and drawing library come from Pico-Toolset, which carries Waveshare's MIT notices.

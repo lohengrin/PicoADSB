@@ -9,21 +9,44 @@ project(PicoADSB C CXX ASM)
 
 set(PICO_BOARD pico_w CACHE STRING "Board type")
 
-# Use our mbedtls config wrapper that properly includes the standard config
-set(PICO_MBEDTLS_CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/net/mbedtls_config_wrapper.h")
+# Shared Pico-Toolset (git submodule by default; -DPICO_TOOLSET_DIR=... to use
+# another checkout).
+set(PICO_TOOLSET_DIR "${CMAKE_CURRENT_LIST_DIR}/third_party/pico-toolset" CACHE PATH "Pico-Toolset checkout")
+if(NOT EXISTS "${PICO_TOOLSET_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR "Pico-Toolset not found in ${PICO_TOOLSET_DIR}: run "
+                        "'git submodule update --init' or pass -DPICO_TOOLSET_DIR=<checkout>")
+endif()
+
+# pico-sdk reads PICO_MBEDTLS_CONFIG_FILE in pico_sdk_init(): set it first.
+include(${PICO_TOOLSET_DIR}/cmake/pico_toolset_tls_config.cmake)
 
 pico_sdk_init()
 
-add_subdirectory(third_party/epd)
+set(PICO_TOOLSET_BUILD_EPD_2IN13_V4   ON  CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_JSON           ON  CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_WIFI           ON  CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_HTTPS_CLIENT   ON  CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_SSD1306        OFF CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_ILI9486        OFF CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_ST7789         OFF CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_ST7796         OFF CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_XPT2046        OFF CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_PSRAM          OFF CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_USB_HID        OFF CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_USB_COMPOSITE  OFF CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_SDCARD         OFF CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_FLASH_STORE    OFF CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_RGB_LED        OFF CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_RESET_BUTTONS  OFF CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_DVI_HDMI       OFF CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_FAULT_HANDLER  OFF CACHE BOOL "" FORCE)
+set(PICO_TOOLSET_BUILD_SCREEN         OFF CACHE BOOL "" FORCE)
+# EXCLUDE_FROM_ALL: don't build the toolset's example programs.
+add_subdirectory(${PICO_TOOLSET_DIR} pico-toolset EXCLUDE_FROM_ALL)
 
 add_executable(picoadsb
     src/main.cpp
     src/adsb/adsb_client.cpp
-    src/adsb/json.cpp
-    src/net/https_client.cpp
-    src/net/wifi.cpp
-    src/net/mbedtls_platform_time.c
-    src/display/display.cpp
     src/ui/radar.cpp
     src/ui/details.cpp
     src/util/wallclock.cpp
@@ -31,22 +54,15 @@ add_executable(picoadsb
 
 target_include_directories(picoadsb PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/epd
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/net
 )
 
 target_link_libraries(picoadsb
-    epd
     pico_stdlib
-    pico_cyw43_arch_lwip_threadsafe_background
-    pico_lwip_mbedtls
-    pico_mbedtls
-    hardware_spi
+    pico_toolset_epd_2in13_v4
+    pico_toolset_json
+    pico_toolset_wifi
+    pico_toolset_https_client
 )
-
-# mbedtls 3.6.6 added psa_crypto_random.c but SDK 2.3.0's pico_mbedtls source
-# list predates it; compile it here rather than patching the SDK
-target_sources(picoadsb PRIVATE ${PICO_SDK_PATH}/lib/mbedtls/library/psa_crypto_random.c)
 
 pico_enable_stdio_usb(picoadsb 1)
 pico_enable_stdio_uart(picoadsb 0)

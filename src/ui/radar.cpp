@@ -3,8 +3,8 @@
 #include <cmath>
 #include <algorithm>
 
-#include "display/display.hpp"
-#include "display/epd_c_api.h"
+#include "ui/canvas.hpp"
+#include "epd_paint.h"
 #include "adsb/geo.hpp"
 
 namespace ui {

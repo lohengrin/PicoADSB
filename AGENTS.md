@@ -36,6 +36,7 @@ Landscape layout on the e-Paper:
 ## Build
 
 ```sh
+git submodule update --init                        # third_party/pico-toolset
 cp src/config.local.h.example src/config.local.h   # WiFi credentials (gitignored)
 cmake -B build -S . -DPICO_BOARD=pico_w -DPICO_SDK_PATH=/home/lohengrin/PICO/pico-sdk
 cmake --build build --target picoadsb -j
@@ -44,13 +45,16 @@ cmake --build build --target picoadsb -j
 Gotchas:
 - The shell may export `PICO_PLATFORM=rp2350`; prefix commands with
   `env -u PICO_PLATFORM` or configure fails / builds the wrong target.
-- The SDK tree must stay pristine. mbedtls 3.6.6 added
-  `psa_crypto_random.c`, missing from the SDK's pico_mbedtls file list; it is
-  compiled directly into the project from `CMakeLists.txt` instead of patching
-  the SDK.
-- TLS config wrapper: `src/net/mbedtls_config_wrapper.h` (TLS 1.2,
-  ECDHE_RSA/ECDHE_ECDSA enabled — adsb.lol needs ECDHE-RSA-AES256-GCM-SHA384).
-  CA pin: ISRG Root X1 (`src/net/isrg_root_yr_pem.h`).
+- Shared code lives in the Pico-Toolset submodule (`third_party/pico-toolset`,
+  `-DPICO_TOOLSET_DIR=<checkout>` to use another): e-paper driver + GUI_Paint
+  (`pico_toolset_epd_2in13_v4`), JSON reader, Wi-Fi, HTTPS client. Fix those
+  there, not here. Only the ADS-B code, UI and `src/util/wallclock` stay local.
+- The SDK tree must stay pristine. The mbedtls 3.6.6 `psa_crypto_random.c`
+  workaround, the TLS 1.2 mbedtls config (ECDHE_RSA/ECDHE_ECDSA — adsb.lol
+  needs ECDHE-RSA-AES256-GCM-SHA384) and `lwipopts.h` ship with the toolset's
+  `pico_toolset_https_client`; `CMakeLists.txt` includes its
+  `cmake/pico_toolset_tls_config.cmake` before `pico_sdk_init()`.
+- CA pin: ISRG Root YR (`pico_toolset::tls_roots::kIsrgRootYrPem`).
 
 ## Integration and Tests
 
@@ -68,10 +72,10 @@ Gotchas:
   internally — effective order is (cell background, glyph colour); background
   == WHITE draws glyphs only (transparent). Panel polarity is normal:
   BLACK(0x00) renders black.
-- Display refresh: full path = `Init()` + `Display_Base()` (one blink),
-  partial path = `Display_Partial()` only; both end with `Sleep()`.
-  `clearScreen()` forces a full refresh next cycle.
-- HTTPS client (`src/net/https_client.cpp`): persistent keep-alive TLS
+- Display refresh (`Epd2in13V4::update()`): full path = `init_panel()` +
+  `display_base()` (one blink), partial path = `display_partial()` only; both
+  end with `sleep()`. `clear_screen()` forces a full refresh next cycle.
+- HTTPS client (toolset `pico_toolset::HttpsClient`): persistent keep-alive TLS
   connection reused across cycles; callbacks only set flags — requests are
   written from the main-loop context, never inside lwIP input processing;
   poll watchdog armed only while a request is in flight.

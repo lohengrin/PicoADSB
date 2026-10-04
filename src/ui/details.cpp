@@ -3,8 +3,8 @@
 #include <cstdio>
 
 #include "adsb/type_names.hpp"
-#include "display/display.hpp"
-#include "display/epd_c_api.h"
+#include "ui/canvas.hpp"
+#include "epd_paint.h"
 #include "util/wallclock.hpp"
 
 namespace ui {

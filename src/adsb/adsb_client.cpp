@@ -3,7 +3,7 @@
 #include <cstdio>
 
 #include "adsb/geo.hpp"
-#include "adsb/json.hpp"
+#include "pico_toolset/json_reader.h"
 
 namespace adsb {
 
@@ -32,7 +32,7 @@ std::string buildRoutePath(const std::string& callsign, double lat, double lon) 
 // annotated for radar drawing and closest-plane selection.
 bool parseAircraftResponse(const char* body, size_t len, double obsLat,
                            double obsLon, std::vector<Aircraft>& out) {
-    json::Reader r(body, len);
+    pico_toolset::JsonReader r(body, len);
     out.clear();
 
     std::string key;
@@ -90,7 +90,7 @@ bool parseAircraftResponse(const char* body, size_t len, double obsLat,
 
 bool parseRouteDestination(const char* body, size_t len, std::string& dest) {
     dest.clear();
-    json::Reader r(body, len);
+    pico_toolset::JsonReader r(body, len);
 
     std::string key;
     if (!r.beginObject()) return false;
@@ -119,7 +119,7 @@ bool parseRouteDestination(const char* body, size_t len, std::string& dest) {
 }
 
 bool parseResponseTime(const char* body, size_t len, long long& epochSec) {
-    json::Reader r(body, len);
+    pico_toolset::JsonReader r(body, len);
     std::string key;
 
     if (!r.beginObject()) return false;
